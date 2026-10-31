@@ -5,12 +5,13 @@ config_version=5
 
 config/name="AZA RP"
 config/description="AZA RP - Kyrgyz Realistic Open World"
+run/main_scene="res://scenes/AZA_CITY.tscn"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
-window/handheld/orientation=1
+window/handheld/orientation=0
 
 [rendering]
 
