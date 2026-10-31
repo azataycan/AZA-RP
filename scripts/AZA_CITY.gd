@@ -118,27 +118,53 @@ func create_buildings():
             "Building_Roof_" + str(i + 1)
         )
 
-func create_mountains():
-    for i in range(9):
-        var mountain = MeshInstance3D.new()
-        mountain.name = "Kyrgyz_Mountain_" + str(i)
 
-        var mesh = CylinderMesh.new()
-        mesh.top_radius = 1.0
-        mesh.bottom_radius = 25.0
-        mesh.height = 65.0
-        mesh.radial_segments = 6
+func create_mountains():
+    var rock = material(Color(0.32, 0.39, 0.42))
+    var snow = material(Color(0.83, 0.87, 0.90))
+
+    var peaks = [
+        Vector4(-190, 76, 45, 32),
+        Vector4(-145, 92, 52, 38),
+        Vector4(-95, 65, 40, 30),
+        Vector4(-45, 100, 55, 42),
+        Vector4(10, 72, 43, 32),
+        Vector4(65, 94, 50, 40),
+        Vector4(120, 70, 43, 32),
+        Vector4(175, 88, 50, 38)
+    ]
+
+    for i in range(peaks.size()):
+        var p: Vector4 = peaks[i]
+
+        var mountain = MeshInstance3D.new()
+        mountain.name = "Mountain_" + str(i)
+
+        var mesh = SphereMesh.new()
+        mesh.radius = 1.0
+        mesh.height = 2.0
+        mesh.radial_segments = 24
+        mesh.rings = 12
 
         mountain.mesh = mesh
-        mountain.position = Vector3(
-            -180 + i * 45,
-            30,
-            -190
-        )
-        mountain.material_override = material(
-            Color(0.38, 0.43, 0.44)
-        )
+        mountain.scale = Vector3(p.z, p.y / 2.0, p.w)
+        mountain.position = Vector3(p.x, p.y / 2.0, -190)
+        mountain.material_override = rock
         add_child(mountain)
+
+        var snowcap = MeshInstance3D.new()
+        snowcap.name = "Snow_" + str(i)
+
+        var cap_mesh = SphereMesh.new()
+        cap_mesh.radial_segments = 16
+        cap_mesh.rings = 8
+
+        snowcap.mesh = cap_mesh
+        snowcap.scale = Vector3(p.z * 0.25, p.y * 0.12, p.w * 0.25)
+        snowcap.position = Vector3(p.x, p.y * 0.83, -190)
+        snowcap.material_override = snow
+        add_child(snowcap)
+
 
 func create_city_plaza():
     add_box(
