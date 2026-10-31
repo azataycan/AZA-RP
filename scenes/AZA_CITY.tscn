@@ -1,1 +1,18 @@
 
+[gd_scene format=3]
+
+[node name="AZA_CITY" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-45, -30, 0)
+shadow_enabled = true
+
+[node name="CityGround" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.5, 0)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 80, 100)
+rotation_degrees = Vector3(-35, 0, 0)
+current = true
