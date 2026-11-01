@@ -119,9 +119,16 @@ func create_buildings():
         )
 
 
+
+const MOUNTAIN_HEIGHTS = [0.0, 0.18, 0.40, 0.66, 0.86]
+const MOUNTAIN_SCALES = [1.0, 0.90, 0.73, 0.48, 0.24]
+
 func create_mountains():
-    var rock = material(Color(0.32, 0.39, 0.42))
-    var snow = material(Color(0.83, 0.87, 0.90))
+    var rock = material(Color(0.32, 0.37, 0.40))
+    var snow = material(Color(0.85, 0.88, 0.91))
+
+    rock.cull_mode = BaseMaterial3D.CULL_DISABLED
+    snow.cull_mode = BaseMaterial3D.CULL_DISABLED
 
     var peaks = [
         Vector4(-190, 76, 45, 32),
@@ -139,31 +146,114 @@ func create_mountains():
 
         var mountain = MeshInstance3D.new()
         mountain.name = "Mountain_" + str(i)
-
-        var mesh = SphereMesh.new()
-        mesh.radius = 1.0
-        mesh.height = 2.0
-        mesh.radial_segments = 24
-        mesh.rings = 12
-
-        mountain.mesh = mesh
-        mountain.scale = Vector3(p.z, p.y / 2.0, p.w)
-        mountain.position = Vector3(p.x, p.y / 2.0, -190)
+        mountain.mesh = build_mountain_mesh(
+            p.y, p.z, p.w, i, false
+        )
         mountain.material_override = rock
+        mountain.position = Vector3(p.x, 0, -190)
         add_child(mountain)
 
         var snowcap = MeshInstance3D.new()
-        snowcap.name = "Snow_" + str(i)
-
-        var cap_mesh = SphereMesh.new()
-        cap_mesh.radial_segments = 16
-        cap_mesh.rings = 8
-
-        snowcap.mesh = cap_mesh
-        snowcap.scale = Vector3(p.z * 0.25, p.y * 0.12, p.w * 0.25)
-        snowcap.position = Vector3(p.x, p.y * 0.83, -190)
+        snowcap.name = "SnowCap_" + str(i)
+        snowcap.mesh = build_mountain_mesh(
+            p.y, p.z, p.w, i, true
+        )
         snowcap.material_override = snow
+        snowcap.position = Vector3(p.x, 0.6, -190)
         add_child(snowcap)
+
+
+func build_mountain_mesh(
+    height: float,
+    radius_x: float,
+    radius_z: float,
+    seed: int,
+    snow_only: bool
+) -> ArrayMesh:
+
+    var st = SurfaceTool.new()
+    st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+    var segments = 12
+
+    for ring in range(5):
+        if snow_only and ring < 3:
+            continue
+
+        for segment in range(segments):
+            var next_segment = (segment + 1) % segments
+
+            var a = mountain_point(
+                height, radius_x, radius_z,
+                seed, ring, segment, snow_only
+            )
+
+            var b = mountain_point(
+                height, radius_x, radius_z,
+                seed, ring, next_segment, snow_only
+            )
+
+            if ring == 4:
+                var peak = Vector3(0, height, 0)
+                if snow_only:
+                    peak.y += 0.6
+
+                st.add_vertex(a)
+                st.add_vertex(peak)
+                st.add_vertex(b)
+            else:
+                var c = mountain_point(
+                    height, radius_x, radius_z,
+                    seed, ring + 1, segment, snow_only
+                )
+
+                var d = mountain_point(
+                    height, radius_x, radius_z,
+                    seed, ring + 1, next_segment, snow_only
+                )
+
+                st.add_vertex(a)
+                st.add_vertex(c)
+                st.add_vertex(b)
+
+                st.add_vertex(b)
+                st.add_vertex(c)
+                st.add_vertex(d)
+
+    st.generate_normals()
+    return st.commit()
+
+
+func mountain_point(
+    height: float,
+    radius_x: float,
+    radius_z: float,
+    seed: int,
+    ring: int,
+    segment: int,
+    snow_only: bool
+) -> Vector3:
+
+    var angle = TAU * float(segment) / 12.0
+
+    var variation = 1.0 \
+        + 0.13 * sin(angle * 3.0 + float(seed)) \
+        + 0.07 * cos(angle * 5.0 + float(seed) * 1.7)
+
+    var radius = MOUNTAIN_SCALES[ring] * variation
+
+    var y = MOUNTAIN_HEIGHTS[ring] * height \
+        + 0.10 * height * (variation - 1.0)
+
+    if snow_only:
+        radius *= 1.02
+        y += 0.35
+
+    return Vector3(
+        cos(angle) * radius_x * radius,
+        y,
+        sin(angle) * radius_z * radius
+    )
 
 
 func create_city_plaza():
