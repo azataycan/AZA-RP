@@ -119,13 +119,9 @@ func create_buildings():
         )
 
 
-
-const MOUNTAIN_HEIGHTS = [0.0, 0.18, 0.40, 0.66, 0.86]
-const MOUNTAIN_SCALES = [1.0, 0.90, 0.73, 0.48, 0.24]
-
 func create_mountains():
-    var rock = material(Color(0.32, 0.37, 0.40))
-    var snow = material(Color(0.85, 0.88, 0.91))
+    var rock = material(Color(0.30, 0.35, 0.39))
+    var snow = material(Color(0.87, 0.90, 0.93))
 
     rock.cull_mode = BaseMaterial3D.CULL_DISABLED
     snow.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -146,7 +142,7 @@ func create_mountains():
 
         var mountain = MeshInstance3D.new()
         mountain.name = "Mountain_" + str(i)
-        mountain.mesh = build_mountain_mesh(
+        mountain.mesh = build_mountain_mesh_v3(
             p.y, p.z, p.w, i, false
         )
         mountain.material_override = rock
@@ -154,16 +150,16 @@ func create_mountains():
         add_child(mountain)
 
         var snowcap = MeshInstance3D.new()
-        snowcap.name = "SnowCap_" + str(i)
-        snowcap.mesh = build_mountain_mesh(
+        snowcap.name = "Snow_" + str(i)
+        snowcap.mesh = build_mountain_mesh_v3(
             p.y, p.z, p.w, i, true
         )
         snowcap.material_override = snow
-        snowcap.position = Vector3(p.x, 0.6, -190)
+        snowcap.position = Vector3(p.x, 0, -190)
         add_child(snowcap)
 
 
-func build_mountain_mesh(
+func build_mountain_mesh_v3(
     height: float,
     radius_x: float,
     radius_z: float,
@@ -174,80 +170,77 @@ func build_mountain_mesh(
     var st = SurfaceTool.new()
     st.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-    var segments = 12
+    var start_ring = 1 if snow_only else 0
+    var segments = 8
 
-    for ring in range(5):
-        if snow_only and ring < 3:
-            continue
+    for segment in range(segments):
+        var nxt = (segment + 1) % segments
 
-        for segment in range(segments):
-            var next_segment = (segment + 1) % segments
+        var a = mountain_vertex_v3(
+            height, radius_x, radius_z,
+            seed, start_ring, segment
+        )
+        var b = mountain_vertex_v3(
+            height, radius_x, radius_z,
+            seed, start_ring, nxt
+        )
+        var c = mountain_vertex_v3(
+            height, radius_x, radius_z,
+            seed, start_ring + 1, segment
+        )
+        var d = mountain_vertex_v3(
+            height, radius_x, radius_z,
+            seed, start_ring + 1, nxt
+        )
 
-            var a = mountain_point(
-                height, radius_x, radius_z,
-                seed, ring, segment, snow_only
+        st.add_vertex(a)
+        st.add_vertex(c)
+        st.add_vertex(b)
+
+        st.add_vertex(b)
+        st.add_vertex(c)
+        st.add_vertex(d)
+
+        if snow_only:
+            var apex = Vector3(
+                sin(float(seed)) * radius_x * 0.05,
+                height,
+                cos(float(seed)) * radius_z * 0.05
             )
 
-            var b = mountain_point(
-                height, radius_x, radius_z,
-                seed, ring, next_segment, snow_only
-            )
-
-            if ring == 4:
-                var peak = Vector3(0, height, 0)
-                if snow_only:
-                    peak.y += 0.6
-
-                st.add_vertex(a)
-                st.add_vertex(peak)
-                st.add_vertex(b)
-            else:
-                var c = mountain_point(
-                    height, radius_x, radius_z,
-                    seed, ring + 1, segment, snow_only
-                )
-
-                var d = mountain_point(
-                    height, radius_x, radius_z,
-                    seed, ring + 1, next_segment, snow_only
-                )
-
-                st.add_vertex(a)
-                st.add_vertex(c)
-                st.add_vertex(b)
-
-                st.add_vertex(b)
-                st.add_vertex(c)
-                st.add_vertex(d)
+            st.add_vertex(c)
+            st.add_vertex(apex)
+            st.add_vertex(d)
 
     st.generate_normals()
     return st.commit()
 
 
-func mountain_point(
+func mountain_vertex_v3(
     height: float,
     radius_x: float,
     radius_z: float,
     seed: int,
     ring: int,
-    segment: int,
-    snow_only: bool
+    segment: int
 ) -> Vector3:
 
-    var angle = TAU * float(segment) / 12.0
+    var angle = TAU * float(segment) / 8.0
+    angle += float(seed) * 0.13
+
+    var scales = [1.0, 0.58, 0.28]
+    var levels = [0.0, 0.48, 0.82]
 
     var variation = 1.0 \
-        + 0.13 * sin(angle * 3.0 + float(seed)) \
-        + 0.07 * cos(angle * 5.0 + float(seed) * 1.7)
+        + 0.16 * sin(angle * 3.0 + float(seed)) \
+        + 0.08 * cos(angle * 5.0 + float(seed))
 
-    var radius = MOUNTAIN_SCALES[ring] * variation
+    var radius = scales[ring] * variation
+    var y = height * levels[ring]
 
-    var y = MOUNTAIN_HEIGHTS[ring] * height \
-        + 0.10 * height * (variation - 1.0)
-
-    if snow_only:
-        radius *= 1.02
-        y += 0.35
+    y += height * 0.035 * sin(
+        angle * 4.0 + float(seed)
+    )
 
     return Vector3(
         cos(angle) * radius_x * radius,
